@@ -1,0 +1,131 @@
+configurations {
+    include
+    compile.extendsFrom include
+}
+
+buildscript {
+    repositories {
+        jcenter()
+        maven { url = "https://maven.minecraftforge.net" }
+        maven { url = "https://repo.spongepowered.org/maven" }
+        maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+        maven {
+            name = "jitpack"
+            url = "https://jitpack.io/"
+        }
+    }
+    dependencies {
+        classpath 'com.github.asbyth:ForgeGradle:6f53277'
+        classpath 'com.github.xcfrg:MixinGradle:0.6-SNAPSHOT'
+        classpath 'com.github.jengelman.gradle.plugins:shadow:4.0.4'
+    }
+}
+
+apply plugin: 'net.minecraftforge.gradle.forge'
+apply plugin: 'org.spongepowered.mixin'
+apply plugin: 'com.github.johnrengelman.shadow'
+
+version = mod_version.toString() + "-dev"
+group = mod_group
+archivesBaseName = mod_id
+
+sourceCompatibility = targetCompatibility = '1.8'
+compileJava {
+    sourceCompatibility = targetCompatibility = '1.8'
+}
+
+configurations.runtimeOnly.setCanBeResolved(true)
+
+minecraft {
+    version = "${minecraft_version}-${forge_version}"
+    runDir = "run"
+    mappings = mappings_version
+
+    clientJvmArgs += "-Dfml.coreMods.load=${mod_core_plugin}"
+    clientRunArgs += "--mixin ${mod_mixin_configs}"
+}
+
+repositories {
+    maven { url = 'https://jitpack.io' }
+    maven { url = "https://repo.spongepowered.org/maven" }
+    maven { url = 'https://lukflug.github.io/maven' }
+}
+
+dependencies {
+    include ("com.github.KevinPriv:MojangAPI:1.0") {
+        exclude module: "gson"
+    }
+
+    include ("org.spongepowered:mixin:0.7.11-SNAPSHOT") {
+        exclude module: 'guava'
+        exclude module: 'commons-io'
+        exclude module: 'gson'
+    }
+
+    annotationProcessor("org.spongepowered:mixin:0.7.11-SNAPSHOT")
+}
+
+mixin {
+    disableRefMapWarning = true
+    defaultObfuscationEnv = searge
+    add sourceSets.main, "mixins.examplemod.refmap.json"
+}
+
+
+processResources {
+    inputs.property "version", project.version
+    inputs.property "mcversion", project.minecraft.version
+
+    from(sourceSets.main.resources.srcDirs) {
+        include 'mcmod.info'
+
+        expand 'mod_id': mod_id, 'mod_name': mod_name, 'version': version,
+                'mcversion': project.minecraft.version, 'mod_description': mod_description
+    }
+}
+import org.apache.tools.ant.filters.ReplaceTokens
+
+task processSource(type: Sync) {
+    from sourceSets.main.java
+    into "$buildDir/src"
+    filter(ReplaceTokens, tokens: [VERSION: version])
+}
+
+compileJava {
+    source = processSource.outputs
+}
+
+reobf {
+    jar {
+        extraLines "PK: com/github examplemod/shadow/github"
+    }
+}
+
+jar {
+    manifest {
+        attributes "FMLCorePlugin": mod_core_plugin
+        attributes "FMLCorePluginContainsFMLMod": "true"
+        attributes "ForceLoadAsMod": "true"
+        attributes "TweakClass": "org.spongepowered.asm.launch.MixinTweaker"
+        attributes "TweakOrder": "0"
+        attributes "MixinConfigs": mod_mixin_configs.replace('${mod_id}', mod_id)
+    }
+
+    configurations.include.each{ dep ->
+        from(project.zipTree(dep)) {
+            exclude 'META-INF', 'META-INF/**'
+        }
+        from(project.zipTree(dep)) {
+            include 'META-INF/services', 'META-INF/services/**'
+        }
+    }
+}
+
+task moveResources {
+    doLast {
+        ant.move file: "${buildDir}/resources/main", todir: "${buildDir}/classes/java"
+    }
+}
+
+moveResources.dependsOn processResources
+classes.dependsOn moveResources

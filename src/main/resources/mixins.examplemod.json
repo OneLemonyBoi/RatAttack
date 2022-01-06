@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "compatibilityLevel": "JAVA_8",
+  "package": "onelemonyboi.examplemod.mixin",
+  "refmap": "mixins.aniskin.refmap.json",
+  "verbose": true,
+  "client": [
+    "DefaultMixin"
+  ],
+  "minVersion": "0.7.11"
+}

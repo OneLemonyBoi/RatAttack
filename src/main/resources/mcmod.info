@@ -1,0 +1,15 @@
+[
+{
+  "modid": "examplemod",
+  "name": "Example Mod",
+  "description": "Example Mod",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "updateUrl": "",
+  "authorList": ["OneLemonyBoi"],
+  "credits": "OneLemonyBoi",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]
